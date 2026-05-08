@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "YT Short Saver",
+  "version": "1.0",
+  "description": "Simpan URL short dengan Ctrl+Alt+S",
+  
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  
+  "background": {
+    "scripts": ["background.js"]
+  },
+  
+  "commands": {
+    "simpan-url": {
+      "suggested_key": {
+        "default": "Ctrl+Alt+S"
+      },
+      "description": "Simpan URL tab aktif"
+    }
+  },
+  
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "short-saver@example.com"
+    }
+  }
+}
