@@ -1,179 +1,239 @@
 // popup.js
 
-// Tampilkan jumlah URL yang tersimpan saat popup dibuka
-async function updateInfo() {
-  try {
-    const result = await browser.storage.local.get("daftarUrl");
-    const daftar = result.daftarUrl || [];
-    const jumlah = daftar.length;
-    
-    const infoBox = document.getElementById("infoBox");
-    if (jumlah === 0) {
-      infoBox.innerHTML = "📭 Belum ada URL tersimpan.<br>Tekan <strong>Ctrl+Alt+S</strong> untuk menyimpan URL tab aktif.";
-    } else {
-      infoBox.innerHTML = `✅ <strong>${jumlah}</strong> URL tersimpan<br>
-                           <span style="font-size: 11px; color: #666;">Terakhir: ${daftar[daftar.length-1]?.timestamp || '-'}</span>`;
-    }
-  } catch (error) {
-    console.error("Gagal mengambil data:", error);
-    document.getElementById("infoBox").innerHTML = "❌ Gagal memuat data";
-  }
-}
+let currentSessions = [];
+let activeId = null;
 
-// Ekspor ke file TXT
-async function exportToTxt() {
-  const statusDiv = document.getElementById("status");
-  statusDiv.innerHTML = "⏳ Menyiapkan file...";
-  statusDiv.className = "status";
-  
-  try {
-    const result = await browser.storage.local.get("daftarUrl");
-    const daftar = result.daftarUrl || [];
-    
-    if (daftar.length === 0) {
-      statusDiv.innerHTML = "⚠️ Tidak ada URL untuk diekspor";
-      statusDiv.className = "status error";
-      return;
-    }
-    
-    // 1. Format isi file
-    let kontenTxt = "=== DAFTAR URL TERSIMPAN ===\n";
-    kontenTxt += `Total: ${daftar.length} URL\n`;
-    kontenTxt += `Tanggal ekspor: ${new Date().toLocaleString()}\n`;
-    kontenTxt += "=".repeat(50) + "\n\n";
-    
-    daftar.forEach((item, index) => {
-      kontenTxt += `${index + 1}. ${item.url}\n`;
-      kontenTxt += `   📅 Disimpan: ${item.timestamp}\n\n`;
-    });
-    
-    // 2. Buat Blob
-    const blob = new Blob([kontenTxt], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    
-    // 3. Buat nama file
-    const now = new Date();
-    const timestamp = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}_${now.getHours()}-${now.getMinutes()}`;
-    const namaFile = `short_urls_${timestamp}.txt`;
-
-    // 4. METODE ALTERNATIF (Link Injection)
-    // Cara ini lebih aman dari "Access Denied" di Firefox Popup
-    const tempLink = document.createElement("a");
-    tempLink.href = url;
-    tempLink.download = namaFile;
-    tempLink.style.display = "none";
-    
-    document.body.appendChild(tempLink);
-    tempLink.click(); // Memicu download secara paksa
-    
-    // Beri waktu sedikit sebelum membersihkan DOM
-    setTimeout(() => {
-      document.body.removeChild(tempLink);
-      URL.revokeObjectURL(url);
-    }, 100);
-
-    statusDiv.innerHTML = `✅ Berhasil mengekspor ${daftar.length} URL`;
-    statusDiv.className = "status success";
-    
-    setTimeout(() => {
-      statusDiv.innerHTML = "";
-      statusDiv.className = "status";
-    }, 3000);
-
-  } catch (error) {
-    console.error("Gagal ekspor:", error);
-    statusDiv.innerHTML = `❌ Gagal: ${error.message}`;
-    statusDiv.className = "status error";
-  }
-}
-
-// Hapus semua URL (dengan konfirmasi)
-async function clearAllUrls() {
-  const confirmHapus = confirm("⚠️ Yakin ingin menghapus SEMUA URL tersimpan?\n\nTindakan ini tidak bisa dibatalkan.");
-  
-  if (!confirmHapus) return;
-  
-  const statusDiv = document.getElementById("status");
-  statusDiv.innerHTML = "⏳ Menghapus semua URL...";
-  statusDiv.className = "status";
-  
-  try {
-    await browser.storage.local.set({ daftarUrl: [] });
-    statusDiv.innerHTML = "✅ Semua URL berhasil dihapus";
-    statusDiv.className = "status success";
-    await updateInfo(); // Refresh tampilan
-    
-    setTimeout(() => {
-      statusDiv.innerHTML = "";
-      statusDiv.className = "status";
-    }, 2000);
-  } catch (error) {
-    statusDiv.innerHTML = `❌ Gagal menghapus: ${error.message}`;
-    statusDiv.className = "status error";
-    setTimeout(() => {
-      statusDiv.innerHTML = "";
-      statusDiv.className = "status";
-    }, 2000);
-  }
-}
-
-// Ekspor format bersih (Hanya URL per baris)
-async function exportRaw() {
-  const statusDiv = document.getElementById("status");
-  statusDiv.innerHTML = "⏳ Menyiapkan file...";
-  statusDiv.className = "status";
-  
-  try {
-    const result = await browser.storage.local.get("daftarUrl");
-    const daftar = result.daftarUrl || [];
-    
-    if (daftar.length === 0) {
-      statusDiv.innerHTML = "⚠️ Tidak ada URL untuk diekspor";
-      statusDiv.className = "status error";
-      return;
-    }
-    
-    // FORMAT BERSIH: Hanya URL, satu per baris
-    const kontenRaw = daftar.map(item => item.url).join("\n");
-    
-    const blob = new Blob([kontenRaw], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    
-    const now = new Date();
-    const timestamp = `${now.getFullYear()}${now.getMonth()+1}${now.getDate()}_${now.getHours()}${now.getMinutes()}`;
-    const namaFile = `list_urls_only_${timestamp}.txt`;
-
-    const tempLink = document.createElement("a");
-    tempLink.href = url;
-    tempLink.download = namaFile;
-    tempLink.style.display = "none";
-    
-    document.body.appendChild(tempLink);
-    tempLink.click();
-    
-    setTimeout(() => {
-      document.body.removeChild(tempLink);
-      URL.revokeObjectURL(url);
-    }, 100);
-
-    statusDiv.innerHTML = `✅ Berhasil ekspor ${daftar.length} URL (Raw)`;
-    statusDiv.className = "status success";
-    
-    setTimeout(() => {
-      statusDiv.innerHTML = "";
-      statusDiv.className = "status";
-    }, 3000);
-
-  } catch (error) {
-    statusDiv.innerHTML = `❌ Gagal: ${error.message}`;
-    statusDiv.className = "status error";
-  }
-}
-
-// Event listeners
-document.addEventListener("DOMContentLoaded", () => {
-  updateInfo();
-  document.getElementById("exportBtn").addEventListener("click", exportToTxt);
-  document.getElementById("exportRawBtn").addEventListener("click", exportRaw); // Listener baru
-  document.getElementById("clearBtn").addEventListener("click", clearAllUrls);
+// --- INITIALIZATION ---
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadData();
+  setupEventListeners();
 });
+
+async function loadData() {
+  const data = await browser.storage.local.get(["sessions", "activeSessionId"]);
+  currentSessions = data.sessions || [];
+  activeId = data.activeSessionId;
+
+  // Inisialisasi default jika kosong
+  if (currentSessions.length === 0) {
+    const defaultSession = {
+      id: Date.now().toString(),
+      name: "Default Session",
+      links: []
+    };
+    currentSessions.push(defaultSession);
+    activeId = defaultSession.id;
+    await saveToStorage();
+  }
+
+  renderSessionSelect();
+  renderLinks();
+}
+
+async function saveToStorage() {
+  await browser.storage.local.set({ 
+    sessions: currentSessions, 
+    activeSessionId: activeId 
+  });
+}
+
+// --- RENDERING UI ---
+
+function renderSessionSelect() {
+  const select = document.getElementById("sessionSelect");
+  select.innerHTML = "";
+  currentSessions.forEach(s => {
+    const opt = document.createElement("option");
+    opt.value = s.id;
+    opt.textContent = s.name;
+    opt.selected = s.id === activeId;
+    select.appendChild(opt);
+  });
+}
+
+function renderLinks() {
+  const container = document.getElementById("linkContainer");
+  const session = currentSessions.find(s => s.id === activeId);
+  const selectAllCb = document.getElementById("selectAll");
+  
+  container.innerHTML = "";
+  selectAllCb.checked = false;
+  toggleMultiActions();
+
+  if (!session || session.links.length === 0) {
+    container.innerHTML = '<div class="empty-state">Belum ada URL di session ini.</div>';
+    return;
+  }
+
+  // Render terbalik (terbaru di atas)
+  [...session.links].reverse().forEach(link => {
+    const div = document.createElement("div");
+    div.className = "link-item";
+    div.innerHTML = `
+      <input type="checkbox" class="link-cb" value="${link.id}">
+      <div class="link-content">
+        <div title="${link.url}">${link.url}</div>
+        <span class="link-date">${new Date(link.timestamp).toLocaleString('id-ID')}</span>
+      </div>
+      <button class="icon-btn btn-danger btn-sm" data-id="${link.id}" title="Hapus">×</button>
+    `;
+    container.appendChild(div);
+  });
+
+  // Event listener untuk tombol hapus satuan
+  container.querySelectorAll('.btn-danger').forEach(btn => {
+    btn.onclick = (e) => removeLinks([e.target.dataset.id]);
+  });
+
+  // Event listener untuk checkbox
+  container.querySelectorAll('.link-cb').forEach(cb => {
+    cb.onchange = () => toggleMultiActions();
+  });
+}
+
+function toggleMultiActions() {
+  const checkedCount = document.querySelectorAll('.link-cb:checked').length;
+  document.getElementById("multiActions").style.display = checkedCount > 0 ? "grid" : "none";
+}
+
+// --- SESSION ACTIONS ---
+
+async function addSession() {
+  const name = prompt("Masukkan nama session baru:");
+  if (!name) return;
+  
+  const newId = Date.now().toString();
+  currentSessions.push({ id: newId, name, links: [] });
+  activeId = newId;
+  
+  await saveToStorage();
+  await loadData();
+  showStatus("Session dibuat", "success");
+}
+
+async function editSession() {
+  const session = currentSessions.find(s => s.id === activeId);
+  const newName = prompt("Ubah nama session:", session.name);
+  if (!newName) return;
+
+  session.name = newName;
+  await saveToStorage();
+  renderSessionSelect();
+  showStatus("Nama diperbarui", "success");
+}
+
+async function duplicateSession() {
+  const session = currentSessions.find(s => s.id === activeId);
+  const duplicated = JSON.parse(JSON.stringify(session));
+  duplicated.id = Date.now().toString() + "_copy";
+  duplicated.name += " (Copy)";
+
+  currentSessions.push(duplicated);
+  await saveToStorage();
+  await loadData();
+  showStatus("Session diduplikasi", "success");
+}
+
+async function deleteSession() {
+  if (currentSessions.length <= 1) {
+    alert("Gak bisa hapus session terakhir!");
+    return;
+  }
+
+  if (!confirm(`Hapus session "${currentSessions.find(s => s.id === activeId).name}" dan semua link di dalamnya?`)) return;
+
+  currentSessions = currentSessions.filter(s => s.id !== activeId);
+  activeId = currentSessions[0].id;
+  
+  await saveToStorage();
+  await loadData();
+  showStatus("Session dihapus", "success");
+}
+
+// --- LINK ACTIONS (REMOVE & EXPORT) ---
+
+async function removeLinks(ids) {
+  if (ids.length > 1 && !confirm(`Hapus ${ids.length} link terpilih?`)) return;
+
+  const sessionIndex = currentSessions.findIndex(s => s.id === activeId);
+  currentSessions[sessionIndex].links = currentSessions[sessionIndex].links.filter(l => !ids.includes(l.id));
+
+  await saveToStorage();
+  renderLinks();
+  showStatus(`${ids.length} link dihapus`, "success");
+}
+
+async function exportLinks(ids = null, format = 'full') {
+  const session = currentSessions.find(s => s.id === activeId);
+  let linksToExport = session.links;
+
+  // Jika ada ID spesifik (untuk "terpilih"), filter dulu
+  if (ids) {
+    linksToExport = session.links.filter(l => ids.includes(l.id));
+  }
+
+  if (linksToExport.length === 0) return;
+
+  let content = "";
+  if (format === 'full') {
+    content = `=== SESSION: ${session.name} ===\nExport: ${new Date().toLocaleString()}\n\n`;
+    linksToExport.forEach((l, i) => {
+      content += `${i+1}. ${l.url}\n   Waktu: ${l.timestamp}\n\n`;
+    });
+  } else {
+    content = linksToExport.map(l => l.url).join("\n");
+  }
+
+  const blob = new Blob([content], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const filename = `${session.name.replace(/\s+/g, '_')}_${format}_${Date.now()}.txt`;
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  showStatus("File diekspor", "success");
+}
+
+// --- UTILS & EVENTS ---
+
+function showStatus(msg, type) {
+  const status = document.getElementById("status");
+  status.textContent = msg;
+  status.className = `status ${type}`;
+  setTimeout(() => { status.textContent = ""; }, 2000);
+}
+
+function setupEventListeners() {
+  // Session Controls
+  document.getElementById("sessionSelect").onchange = async (e) => {
+    activeId = e.target.value;
+    await saveToStorage();
+    renderLinks();
+  };
+  document.getElementById("addSession").onclick = addSession;
+  document.getElementById("editSession").onclick = editSession;
+  document.getElementById("duplicateSession").onclick = duplicateSession;
+  document.getElementById("delSession").onclick = deleteSession;
+
+  // Multi-select
+  document.getElementById("selectAll").onchange = (e) => {
+    document.querySelectorAll('.link-cb').forEach(cb => cb.checked = e.target.checked);
+    toggleMultiActions();
+  };
+
+  // Action Buttons
+  document.getElementById("exportFull").onclick = () => exportLinks();
+  document.getElementById("exportRaw").onclick = () => exportLinks(null, 'raw');
+  
+  document.getElementById("deleteSelected").onclick = () => {
+    const ids = Array.from(document.querySelectorAll('.link-cb:checked')).map(cb => cb.value);
+    removeLinks(ids);
+  };
+
+  document.getElementById("exportSelected").onclick = () => {
+    const ids = Array.from(document.querySelectorAll('.link-cb:checked')).map(cb => cb.value);
+    exportLinks(ids, 'raw');
+  };
+}

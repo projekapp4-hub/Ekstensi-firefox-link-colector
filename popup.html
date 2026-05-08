@@ -1,90 +1,223 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
   <meta charset="utf-8">
   <style>
+    :root {
+      --primary: #0060df;
+      --primary-hover: #0250bb;
+      --danger: #dc3545;
+      --secondary: #6c757d;
+      --light: #f8f9fa;
+      --border: #dee2e6;
+    }
+
     body {
-      width: 350px;
+      width: 380px;
       padding: 15px;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       margin: 0;
+      background-color: #ffffff;
+      color: #333;
     }
-    
+
     h3 {
-      margin: 0 0 10px 0;
-      color: #0060df;
+      margin: 0 0 15px 0;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    
-    .info {
-      background: #f0f0f0;
-      padding: 10px;
-      border-radius: 5px;
+
+    /* Session Manager Section */
+    .session-container {
+      background: var(--light);
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
       margin-bottom: 15px;
-      font-size: 14px;
     }
-    
-    button {
-      width: 100%;
-      padding: 10px;
+
+    .session-header {
+      display: flex;
+      gap: 8px;
       margin-bottom: 10px;
-      background-color: #0060df;
-      color: white;
-      border: none;
-      border-radius: 5px;
+    }
+
+    select {
+      flex-grow: 1;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+      outline: none;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 4px;
+    }
+
+    .icon-btn {
+      padding: 6px 10px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 4px;
       cursor: pointer;
       font-size: 14px;
+      transition: all 0.2s;
     }
-    
-    button:hover {
-      background-color: #0250bb;
+
+    .icon-btn:hover {
+      background: #e9ecef;
+      border-color: #adb5bd;
     }
-    
-    button:active {
-      transform: scale(0.98);
+
+    /* Link List Section */
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding: 0 4px;
     }
-    
+
+    .list-header span {
+      font-size: 12px;
+      font-weight: bold;
+      color: var(--secondary);
+    }
+
+    #linkContainer {
+      max-height: 250px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+
+    .link-item {
+      display: flex;
+      align-items: center;
+      padding: 8px;
+      border-bottom: 1px solid var(--border);
+      gap: 10px;
+      transition: background 0.1s;
+    }
+
+    .link-item:last-child {
+      border-bottom: none;
+    }
+
+    .link-item:hover {
+      background-color: #f1f3f5;
+    }
+
+    .link-content {
+      flex-grow: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: 13px;
+    }
+
+    .link-date {
+      display: block;
+      font-size: 10px;
+      color: #888;
+    }
+
+    /* Action Buttons */
+    .main-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    button.primary {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    button.primary:hover { background-color: var(--primary-hover); }
+
+    .multi-actions {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border);
+      display: none; /* Muncul saat ada checkbox terpilih */
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .btn-danger { background-color: var(--danger) !important; color: white !important; border: none; }
+    .btn-success { background-color: #28a745 !important; color: white !important; border: none; }
+
     .status {
       margin-top: 10px;
       padding: 8px;
-      border-radius: 5px;
+      border-radius: 4px;
       font-size: 12px;
       text-align: center;
+      min-height: 18px;
     }
-    
-    .success {
-      background-color: #d4edda;
-      color: #155724;
+
+    .empty-state {
+      padding: 30px 10px;
+      text-align: center;
+      color: #999;
+      font-style: italic;
     }
-    
-    .error {
-      background-color: #f8d7da;
-      color: #721c24;
-    }
-    
-    hr {
-      margin: 10px 0;
-    }
-    
-    .url-count {
-      font-weight: bold;
-      color: #0060df;
-    }
+
+    /* Scrollbar Styling */
+    #linkContainer::-webkit-scrollbar { width: 6px; }
+    #linkContainer::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
   </style>
 </head>
 <body>
   <h3>📋 Short URL Saver</h3>
   
-  <div class="info" id="infoBox">
-    Mengambil data...
+  <div class="session-container">
+    <div class="session-header">
+      <select id="sessionSelect" title="Pilih Session Aktif"></select>
+      <div class="btn-group">
+        <button id="addSession" class="icon-btn" title="Tambah Session Baru">+</button>
+        <button id="editSession" class="icon-btn" title="Ubah Nama Session">✏️</button>
+        <button id="duplicateSession" class="icon-btn" title="Duplikasi Session">📋</button>
+        <button id="delSession" class="icon-btn btn-danger" title="Hapus Session Ini">🗑️</button>
+      </div>
+    </div>
   </div>
-  
-  <button id="exportBtn">📁 Ekspor ke File TXT</button>
-  <!-- Tambahkan ini di bawah button id="exportBtn" -->
-  <button id="exportRawBtn" style="background-color: #17a2b8;">📄 Ekspor (Hanya Daftar URL)</button>
-  <button id="clearBtn" style="background-color: #6c757d;">🗑️ Hapus Semua URL</button>
-  
+
+  <div class="list-header">
+    <span>Daftar URL</span>
+    <label style="font-size: 11px; cursor: pointer;">
+      <input type="checkbox" id="selectAll"> Pilih Semua
+    </label>
+  </div>
+
+  <div id="linkContainer">
+    <div class="empty-state">Memuat data...</div>
+  </div>
+
+  <div class="main-actions">
+    <button id="exportFull" class="primary">📁 Ekspor TXT (Lengkap)</button>
+    <button id="exportRaw" class="primary" style="background-color: #17a2b8;">📄 Ekspor (Hanya URL)</button>
+  </div>
+
+  <div id="multiActions" class="multi-actions">
+    <button id="exportSelected" class="icon-btn btn-success">Ekspor Terpilih</button>
+    <button id="deleteSelected" class="icon-btn btn-danger">Hapus Terpilih</button>
+  </div>
+
   <div id="status"></div>
-  
+
   <script src="popup.js"></script>
 </body>
 </html>
