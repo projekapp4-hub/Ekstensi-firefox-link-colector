@@ -2,6 +2,8 @@
 
 let currentSessions = [];
 let activeId = null;
+let currentMode = "shortcut"; // default value
+let autoStatus = "stopped";   // default value
 
 // --- INITIALIZATION ---
 document.addEventListener("DOMContentLoaded", async () => {
@@ -10,9 +12,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function loadData() {
-  const data = await browser.storage.local.get(["sessions", "activeSessionId"]);
+  const data = await browser.storage.local.get([
+    "sessions", 
+    "activeSessionId", 
+    "appMode", 
+    "autoStatus"
+  ]);
+  
   currentSessions = data.sessions || [];
   activeId = data.activeSessionId;
+  currentMode = data.appMode || "shortcut";
+  autoStatus = data.autoStatus || "stopped";
 
   // Inisialisasi default jika kosong
   if (currentSessions.length === 0) {
@@ -28,12 +38,15 @@ async function loadData() {
 
   renderSessionSelect();
   renderLinks();
+  updateModeUI();
 }
 
 async function saveToStorage() {
   await browser.storage.local.set({ 
     sessions: currentSessions, 
-    activeSessionId: activeId 
+    activeSessionId: activeId,
+    appMode: currentMode,
+    autoStatus: autoStatus
   });
 }
 
@@ -94,6 +107,36 @@ function renderLinks() {
 function toggleMultiActions() {
   const checkedCount = document.querySelectorAll('.link-cb:checked').length;
   document.getElementById("multiActions").style.display = checkedCount > 0 ? "grid" : "none";
+}
+
+// Memperbarui UI popup berdasarkan mode dan status auto yang aktif
+function updateModeUI() {
+  const modeSelect = document.getElementById("modeSelect");
+  const autoControls = document.getElementById("autoControls");
+  const btnAutoToggle = document.getElementById("btnAutoToggle");
+  const statusDot = document.getElementById("statusDot");
+  const statusText = document.getElementById("statusText");
+
+  modeSelect.value = currentMode;
+
+  if (currentMode === "auto") {
+    autoControls.style.display = "flex";
+    if (autoStatus === "running") {
+      btnAutoToggle.textContent = "Stop";
+      btnAutoToggle.style.backgroundColor = "#dc3545";
+      btnAutoToggle.style.color = "white";
+      statusDot.className = "dot running";
+      statusText.textContent = "Auto Save: Aktif";
+    } else {
+      btnAutoToggle.textContent = "Start";
+      btnAutoToggle.style.backgroundColor = "#28a745";
+      btnAutoToggle.style.color = "white";
+      statusDot.className = "dot stopped";
+      statusText.textContent = "Auto Save: Mati";
+    }
+  } else {
+    autoControls.style.display = "none";
+  }
 }
 
 // --- SESSION ACTIONS ---
@@ -167,7 +210,6 @@ async function exportLinks(ids = null, format = 'full') {
   const session = currentSessions.find(s => s.id === activeId);
   let linksToExport = session.links;
 
-  // Jika ada ID spesifik (untuk "terpilih"), filter dulu
   if (ids) {
     linksToExport = session.links.filter(l => ids.includes(l.id));
   }
@@ -216,6 +258,21 @@ function setupEventListeners() {
   document.getElementById("editSession").onclick = editSession;
   document.getElementById("duplicateSession").onclick = duplicateSession;
   document.getElementById("delSession").onclick = deleteSession;
+
+  // Mode & Auto Save Switch Controls
+  document.getElementById("modeSelect").onchange = async (e) => {
+    currentMode = e.target.value;
+    await saveToStorage();
+    updateModeUI();
+    showStatus(`Mode diubah ke ${currentMode}`, "success");
+  };
+
+  document.getElementById("btnAutoToggle").onclick = async () => {
+    autoStatus = autoStatus === "running" ? "stopped" : "running";
+    await saveToStorage();
+    updateModeUI();
+    showStatus(autoStatus === "running" ? "Auto Save Dimulai" : "Auto Save Dihentikan", "success");
+  };
 
   // Multi-select
   document.getElementById("selectAll").onchange = (e) => {

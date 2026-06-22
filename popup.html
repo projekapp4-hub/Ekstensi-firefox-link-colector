@@ -10,6 +10,8 @@
       --secondary: #6c757d;
       --light: #f8f9fa;
       --border: #dee2e6;
+      --success: #28a745;
+      --warning: #ffc107;
     }
 
     body {
@@ -72,6 +74,66 @@
       background: #e9ecef;
       border-color: #adb5bd;
     }
+
+    /* Mode Selector & Auto Controls */
+    .mode-container {
+      background: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-bottom: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .mode-toggle-wrapper {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .mode-label {
+      font-size: 13px;
+      font-weight: bold;
+      color: #495057;
+    }
+
+    .select-mode {
+      padding: 6px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+      background-color: #fff;
+      cursor: pointer;
+    }
+
+    .auto-controls {
+      display: none; /* Muncul hanya jika mode auto aktif */
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px;
+      background: #e8f0fe;
+      border-radius: 6px;
+      border: 1px solid #d2e3fc;
+    }
+
+    .auto-status-indicator {
+      font-size: 12px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .dot.running { background-color: var(--success); box-shadow: 0 0 6px var(--success); }
+    .dot.stopped { background-color: var(--danger); }
 
     /* Link List Section */
     .list-header {
@@ -151,7 +213,7 @@
       margin-top: 10px;
       padding-top: 10px;
       border-top: 1px dashed var(--border);
-      display: none; /* Muncul saat ada checkbox terpilih */
+      display: none;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
@@ -175,7 +237,6 @@
       font-style: italic;
     }
 
-    /* Scrollbar Styling */
     #linkContainer::-webkit-scrollbar { width: 6px; }
     #linkContainer::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
   </style>
@@ -192,6 +253,24 @@
         <button id="duplicateSession" class="icon-btn" title="Duplikasi Session">📋</button>
         <button id="delSession" class="icon-btn btn-danger" title="Hapus Session Ini">🗑️</button>
       </div>
+    </div>
+  </div>
+
+  <div class="mode-container">
+    <div class="mode-toggle-wrapper">
+      <span class="mode-label">Mode Operasi:</span>
+      <select id="modeSelect" class="select-mode">
+        <option value="shortcut">Shortcut (Ctrl+Alt+S)</option>
+        <option value="auto">Auto Save (URL Change)</option>
+      </select>
+    </div>
+    
+    <div id="autoControls" class="auto-controls">
+      <div class="auto-status-indicator">
+        <span id="statusDot" class="dot stopped"></span>
+        <span id="statusText">Auto Save: Mati</span>
+      </div>
+      <button id="btnAutoToggle" class="icon-btn" style="font-weight: bold; min-width: 70px;">Start</button>
     </div>
   </div>
 

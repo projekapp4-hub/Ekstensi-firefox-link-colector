@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Short URL Saver",
-  "version": "1.3",
-  "description": "Simpan URL short dengan Ctrl+Alt+S dan ekspor ke TXT",
+  "version": "1.4",
+  "description": "Simpan URL short dengan Ctrl+Alt+S atau Mode Otomatis, dan ekspor ke TXT",
   
   "permissions": [
     "activeTab",
+    "tabs",
     "storage",
     "downloads"
   ],
